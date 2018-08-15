@@ -1,4 +1,6 @@
 from collections import defaultdict
+import json
+
 from .utils import check_dirs
 
 class CorpusTrainer:
@@ -12,7 +14,9 @@ class CorpusTrainer:
         pos2words, transition = self._count_pos_words(corpus)
         self.pos2words_, self.transition_ = self._to_prob(pos2words, transition)
         if model_path:
-            self._save_as_txt(model_path)
+            if model_path[-4:] != 'json':
+                model_path += '.json'
+            self._save_as_json(model_path)
 
     def _count_pos_words(self, corpus):
 
@@ -62,7 +66,7 @@ class CorpusTrainer:
 
         return pos2words_, transition_
 
-    def _save_as_txt(self, model_path, pos2words_=None, transition_=None):
+    def _save_as_json(self, model_path, pos2words_=None, transition_=None):
         check_dirs(model_path)
 
         if not pos2words_:
@@ -70,12 +74,12 @@ class CorpusTrainer:
         if not transition_:
             transition_ = self.transition_
 
+        transition_json = {' '.join(pos):prob for pos, prob in transition_.items()}
+
         with open(model_path, 'w', encoding='utf-8') as f:
-            f.write('##transition\n')
-            for pos, prob in sorted(transition_.items()):
-                f.write('{} {} {}\n'.format(pos[0], pos[1], prob))
-            f.write('\n##generation')
-            for pos, words in sorted(pos2words_.items()):
-                f.write('\n#{}\n'.format(pos))
-                for word, prob in sorted(words.items(), key=lambda x:-x[1]):
-                    f.write('{} {}\n'.format(word, prob))
+            json.dump(
+                {'pos2words': pos2words_,
+                 'transition': transition_json
+                },
+                f, ensure_ascii=False, indent=2
+            )
