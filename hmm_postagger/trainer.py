@@ -8,6 +8,9 @@ class CorpusTrainer:
         self.verbose = verbose
 
     def train(self, corpus):
+        pos2words = self._count_pos_words(corpus)
+
+    def _count_pos_words(self, corpus):
 
         def trim_words(words, min_count):
             return {word:count for word, count in words.items() if count >= min_count}
