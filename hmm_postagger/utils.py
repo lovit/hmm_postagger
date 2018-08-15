@@ -1,3 +1,5 @@
+import os
+
 class Corpus:
     def __init__(self, filepath):
         self.filepath = filepath
@@ -8,3 +10,7 @@ class Corpus:
                 if pos_list:
                     yield pos_list
 
+def check_dirs(path):
+    dirname = os.path.dirname(path)
+    if dirname and dirname != '.' and not os.path.exists(dirname):
+        os.makedirs(dirname)
