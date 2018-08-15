@@ -1,4 +1,5 @@
 from collections import defaultdict
+from .utils import check_dirs
 
 class CorpusTrainer:
     def __init__(self, tagset=None, min_count_tag=5, min_count_word=1, verbose=True):
@@ -7,10 +8,11 @@ class CorpusTrainer:
         self.min_count_word = min_count_word
         self.verbose = verbose
 
-    def train(self, corpus):
+    def train(self, corpus, model_path=None):
         pos2words, transition = self._count_pos_words(corpus)
-        pos2words_, transition_ = self._to_prob(pos2words, transition)
-        return pos2words_, transition_
+        self.pos2words_, self.transition_ = self._to_prob(pos2words, transition)
+        if model_path:
+            self._save_as_txt(model_path)
 
     def _count_pos_words(self, corpus):
 
@@ -59,3 +61,21 @@ class CorpusTrainer:
         transition_ = {pos:count/base[pos[0]] for pos, count in transition.items()}
 
         return pos2words_, transition_
+
+    def _save_as_txt(self, model_path, pos2words_=None, transition_=None):
+        check_dirs(model_path)
+
+        if not pos2words_:
+            pos2words_ = self.pos2words_
+        if not transition_:
+            transition_ = self.transition_
+
+        with open(model_path, 'w', encoding='utf-8') as f:
+            f.write('##transition\n')
+            for pos, prob in sorted(transition_.items()):
+                f.write('{} {} {}\n'.format(pos[0], pos[1], prob))
+            f.write('\n##generation')
+            for pos, words in sorted(pos2words_.items()):
+                f.write('\n#{}\n'.format(pos))
+                for word, prob in sorted(words.items(), key=lambda x:-x[1]):
+                    f.write('{} {}\n'.format(word, prob))
