@@ -49,7 +49,7 @@ class CorpusTrainer:
 
         # observation
         base = {pos:sum(words.values()) for pos, words in pos2words.items()}
-        pos2words_ = {pos:{word:count/base[pos] for word in words}
+        pos2words_ = {pos:{word:count/base[pos] for word, count in words.items()}
                       for pos, words in pos2words.items()}
 
         # transition
