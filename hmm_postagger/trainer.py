@@ -8,6 +8,10 @@ class CorpusTrainer:
         self.verbose = verbose
 
     def train(self, corpus):
+
+        def trim_words(words, min_count):
+            return {word:count for word, count in words.items() if count >= min_count}
+
         pos2words = defaultdict(lambda: defaultdict(int))
         for i, sent in enumerate(corpus):
             for word, pos in sent:
@@ -16,5 +20,8 @@ class CorpusTrainer:
                 print('\rtraining from %d sents ...'%i, end='', flush=True)
         if self.verbose:
             print('\rtraining from %d sents was done'%i)
-        pos2words = {pos:dict(words) for pos, words in pos2words.items()}
+        pos2words = {pos:trim_words(words, self.min_count_word)
+                     for pos, words in pos2words.items()}
+        pos2words = {pos:words for pos, words in pos2words.items()
+                     if sum(words.values()) >= self.min_count_tag}
         return pos2words
