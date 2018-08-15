@@ -28,3 +28,26 @@ class CorpusTrainer:
         pos2words = {pos:words for pos, words in pos2words.items()
                      if sum(words.values()) >= self.min_count_tag}
         return pos2words
+
+    def _count_transition(self, tagset, corpus):
+
+        def as_bigram_tag(wordpos):
+            poslist = [pos for _, pos in wordpos]
+            bigram = [(pos0, pos1) for pos0, pos1 in zip(poslist, poslist[1:])
+                      if (pos0 in tagset) and (pos1 in tagset)]
+            return bigram
+
+        trans = defaultdict(lambda: int)
+        for i, sent in enumerate(corpus):
+            for bigram in as_bigram_tag(sent):
+                trans[bigram] += 1
+            if (self.verbose) and (i % 10000 == 0):
+                print('\rtraining transition prob from %d sents ...'%i, end='', flush=True)
+        if (self.verbose):
+            print('\rtraining transition prob from %d sents was done'%i, flush=True)
+
+        base = defaultdict(int)
+        for (pos0, pos1), count in trans.items():
+            base[pos0] += count
+        trans = {pos:count/base[pos[0]] for pos, count in trans.items()}
+        return trans
