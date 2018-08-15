@@ -9,6 +9,8 @@ class CorpusTrainer:
 
     def train(self, corpus):
         pos2words = self._count_pos_words(corpus)
+        transition = self._count_transition_prob(pos2words, corpus)
+        return pos2words, transition
 
     def _count_pos_words(self, corpus):
 
@@ -20,16 +22,16 @@ class CorpusTrainer:
             for word, pos in sent:
                 pos2words[pos][word] += 1
             if (self.verbose) and (i % 10000 == 0):
-                print('\rtraining from %d sents ...'%i, end='', flush=True)
+                print('\rtraining observation prob from %d sents ...'%i, end='', flush=True)
         if self.verbose:
-            print('\rtraining from %d sents was done'%i)
+            print('\rtraining observation prob from %d sents was done'%i)
         pos2words = {pos:trim_words(words, self.min_count_word)
                      for pos, words in pos2words.items()}
         pos2words = {pos:words for pos, words in pos2words.items()
                      if sum(words.values()) >= self.min_count_tag}
         return pos2words
 
-    def _count_transition(self, tagset, corpus):
+    def _count_transition_prob(self, tagset, corpus):
 
         def as_bigram_tag(wordpos):
             poslist = [pos for _, pos in wordpos]
@@ -37,7 +39,7 @@ class CorpusTrainer:
                       if (pos0 in tagset) and (pos1 in tagset)]
             return bigram
 
-        trans = defaultdict(lambda: int)
+        trans = defaultdict(int)
         for i, sent in enumerate(corpus):
             for bigram in as_bigram_tag(sent):
                 trans[bigram] += 1
