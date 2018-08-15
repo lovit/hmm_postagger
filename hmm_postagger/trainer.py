@@ -9,7 +9,8 @@ class CorpusTrainer:
 
     def train(self, corpus):
         pos2words, transition = self._count_pos_words(corpus)
-        return pos2words, transition
+        pos2words_, transition_ = self._to_prob(pos2words, transition)
+        return pos2words_, transition_
 
     def _count_pos_words(self, corpus):
 
@@ -45,10 +46,16 @@ class CorpusTrainer:
         return pos2words, trans
 
     def _to_prob(self, pos2words, transition):
-        def as_prob(trans):
-            base = defaultdict(int)
-            for (pos0, pos1), count in trans.items():
-                base[pos0] += count
-            trans = {pos:count/base[pos[0]] for pos, count in trans.items()}
-            return trans
-        raise NotImplemented
+
+        # transition
+        base = defaultdict(int)
+        for (pos0, pos1), count in transition.items():
+            base[pos0] += count
+        transition_ = {pos:count/base[pos[0]] for pos, count in transition.items()}
+
+        # observation
+        base = {pos:sum(words.values()) for pos, words in pos2words.items()}
+        pos2words_ = {pos:{word:count/base[pos] for word in words}
+                      for pos, words in pos2words.items()}
+
+        return transition_, pos2words_
