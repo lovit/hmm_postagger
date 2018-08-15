@@ -1,3 +1,24 @@
+def sent_to_graph(sent, sent_len):
+    idx2node = [node for words in sent for node in words]
+    node2idx = {node:idx for idx, node in enumerate(idx2node)}
+    sent_idx = [[node2idx[word] for word in words] for words in sent]
+    sent_idx_observed = [
+        [node2idx[word] for word in words if word[3] > word[2]]
+        for words in sent]
+    edges = {}
+
+    for b, words in enumerate(sent):
+        for word in words:
+            from_idx = node2idx[word]
+            if word[3] > sent_len: # EOS
+                continue
+            if word[3] > word[2]:
+                edges[from_idx] = sent_idx[word[3]]
+            else:
+                edges[from_idx] = sent_idx_observed[word[3]]
+
+    return edges, idx2node
+
 def ford(g, start, end):
     from_nodes, to_nodes = _set_nodes_dict(g)
     if not ((start in from_nodes) and (end in to_nodes)):
