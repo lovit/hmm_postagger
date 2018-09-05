@@ -1,5 +1,6 @@
 from collections import defaultdict
 import json
+import math
 
 from .utils import check_dirs
 
@@ -12,7 +13,7 @@ class CorpusTrainer:
 
     def train(self, corpus, model_path=None):
         pos2words, transition = self._count_pos_words(corpus)
-        self.pos2words_, self.transition_ = self._to_prob(pos2words, transition)
+        self.pos2words_, self.transition_ = self._to_log_prob(pos2words, transition)
         if model_path:
             if model_path[-4:] != 'json':
                 model_path += '.json'
@@ -51,18 +52,18 @@ class CorpusTrainer:
 
         return pos2words, trans
 
-    def _to_prob(self, pos2words, transition):
+    def _to_log_prob(self, pos2words, transition):
 
         # observation
         base = {pos:sum(words.values()) for pos, words in pos2words.items()}
-        pos2words_ = {pos:{word:count/base[pos] for word, count in words.items()}
+        pos2words_ = {pos:{word:math.log(count/base[pos]) for word, count in words.items()}
                       for pos, words in pos2words.items()}
 
         # transition
         base = defaultdict(int)
         for (pos0, pos1), count in transition.items():
             base[pos0] += count
-        transition_ = {pos:count/base[pos[0]] for pos, count in transition.items()}
+        transition_ = {pos:math.log(count/base[pos[0]]) for pos, count in transition.items()}
 
         return pos2words_, transition_
 
