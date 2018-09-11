@@ -12,8 +12,12 @@ class CorpusTrainer:
         self.verbose = verbose
 
     def train(self, corpus, model_path=None):
-        pos2words, transition = self._count_pos_words(corpus)
-        self.pos2words_, self.transition_ = self._to_log_prob(pos2words, transition)
+
+        pos2words, transition, bos = self._count_pos_words(corpus)
+
+        self.pos2words_, self.transition_, self.bos_ = self._to_log_prob(
+            pos2words, transition, bos)
+
         if model_path:
             if model_path[-4:] != 'json':
                 model_path += '.json'
@@ -30,8 +34,11 @@ class CorpusTrainer:
 
         pos2words = defaultdict(lambda: defaultdict(int))
         trans = defaultdict(int)
+        bos = defaultdict(int)
 
+        eos_tag = 'EOS'
         message_format = '\rtraining observation/transition prob from %d sents'
+
         for i, sent in enumerate(corpus):
             # generation prob
             for word, pos in sent:
@@ -39,6 +46,10 @@ class CorpusTrainer:
             # transition prob
             for bigram in as_bigram_tag(sent):
                 trans[bigram] += 1
+            # bos
+            bos[sent[0][1]] += 1
+            # eos
+            trans[(sent[-1][1], eos_tag)] += 1
             if (self.verbose) and (i % 10000 == 0):
                 print('%s ...'%(message_format%i), end='', flush=True)
         if self.verbose:
@@ -49,10 +60,11 @@ class CorpusTrainer:
         pos2words = {pos:words for pos, words in pos2words.items()
                      if sum(words.values()) >= self.min_count_tag}
         trans = {pos:count for pos, count in trans.items() if pos[0] in pos2words}
+        bos = {pos:count for pos, count in bos.items() if pos in pos2words}
 
-        return pos2words, trans
+        return pos2words, trans, bos
 
-    def _to_log_prob(self, pos2words, transition):
+    def _to_log_prob(self, pos2words, transition, bos):
 
         # observation
         base = {pos:sum(words.values()) for pos, words in pos2words.items()}
@@ -65,22 +77,29 @@ class CorpusTrainer:
             base[pos0] += count
         transition_ = {pos:math.log(count/base[pos[0]]) for pos, count in transition.items()}
 
-        return pos2words_, transition_
+        # bos
+        base = sum(bos.values())
+        bos_ = {pos:math.log(count/base) for pos, count in bos.items()}
 
-    def _save_as_json(self, model_path, pos2words_=None, transition_=None):
+        return pos2words_, transition_, bos_
+
+    def _save_as_json(self, model_path, pos2words_=None, transition_=None, bos_=None):
         check_dirs(model_path)
 
         if not pos2words_:
             pos2words_ = self.pos2words_
         if not transition_:
             transition_ = self.transition_
+        if not bos_:
+            bos_ = self.bos_
 
         transition_json = {' '.join(pos):prob for pos, prob in transition_.items()}
 
         with open(model_path, 'w', encoding='utf-8') as f:
             json.dump(
                 {'pos2words': pos2words_,
-                 'transition': transition_json
+                 'transition': transition_json,
+                 'bos': bos_
                 },
                 f, ensure_ascii=False, indent=2
             )
