@@ -97,9 +97,9 @@ class CorpusTrainer:
 
         with open(model_path, 'w', encoding='utf-8') as f:
             json.dump(
-                {'pos2words': pos2words_,
+                {'emission': pos2words_,
                  'transition': transition_json,
-                 'bos': bos_
+                 'begin': bos_
                 },
                 f, ensure_ascii=False, indent=2
             )
