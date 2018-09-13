@@ -17,6 +17,12 @@ class TrainedHMMTagger:
         if isinstance(model_path, str):
             self.load_model_from_json(model_path)
 
+        # for user-dictionary, max value
+        self._max_score = {
+            state:max(observations.values())
+            for state, observations in self.emission.values()
+        }
+
     def load_model_from_json(self, model_path):
         with open(model_path, encoding='utf-8') as f:
             model = json.load(f)
@@ -25,6 +31,13 @@ class TrainedHMMTagger:
         self.transition = {tuple(states.split()):prob for states, prob in self.transition.items()}
         self.begin = model['begin']
         del model
+
+    def append_user_dictionary(self, tag, words):
+        if not (tag in self.emission):
+            raise ValueError('%s does not exist in tagset' % tag)
+        append_score = self._max_score[tag]
+        for word in words:
+            self.emission[tag][word] = append_score
 
     def decode(self, sequence):
         raise NotImplemented
