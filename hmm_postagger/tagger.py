@@ -20,7 +20,7 @@ class TrainedHMMTagger:
         # for user-dictionary, max value
         self._max_score = {
             state:max(observations.values())
-            for state, observations in self.emission.values()
+            for state, observations in self.emission.items()
         }
 
     def load_model_from_json(self, model_path):
