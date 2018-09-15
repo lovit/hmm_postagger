@@ -135,4 +135,4 @@ class TrainedHMMTagger:
             graph.append((bos, word))
         graph = sorted(graph, key=lambda x:(x[0][2], x[1][3]))
 
-        return graph, sent
+        return graph
