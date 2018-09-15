@@ -114,7 +114,7 @@ class TrainedHMMTagger:
         if nonempty_first > 0:
             sent[0].append((chars[:nonempty_first], 'Unk', 0, nonempty_first))
 
-        graph = []
+        nodes = []
         for words in sent[:-1]:
             for word in words:
                 begin = word[2]
@@ -122,20 +122,20 @@ class TrainedHMMTagger:
                 if not sent[end]:
                     b = get_nonempty_first(sent, n_char, end)
                     unk = (chars[end:b], 'Unk', end, b)
-                    graph.append((word, unk))
+                    nodes.append((word, unk))
                 for adjacent in sent[end]:
-                    graph.append((word, adjacent))
+                    nodes.append((word, adjacent))
 
-        unks = {node for _, node in graph if node[1] == 'Unk'}
+        unks = {node for _, node in nodes if node[1] == 'Unk'}
         for unk in unks:
             for adjacent in sent[unk[3]]:
-                graph.append((unk, adjacent))
+                nodes.append((unk, adjacent))
         bos = ('BOS', 'BOS', 0, 0)
         for word in sent[0]:
-            graph.append((bos, word))
-        graph = sorted(graph, key=lambda x:(x[0][2], x[1][3]))
+            nodes.append((bos, word))
+        nodes = sorted(nodes, key=lambda x:(x[0][2], x[1][3]))
 
-        return graph
+        return nodes
 
     def _add_weight(self, edges):
         def weight(from_, to_):
