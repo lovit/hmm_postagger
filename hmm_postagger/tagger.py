@@ -97,7 +97,7 @@ class TrainedHMMTagger:
             sent += word_lookup(eojeol, offset=len(sent))
         return sent
 
-    def _generate_graph(self, sentence):
+    def _generate_edge(self, sentence):
 
         def get_nonempty_first(sent, end, offset=0):
             for i in range(offset, end):
