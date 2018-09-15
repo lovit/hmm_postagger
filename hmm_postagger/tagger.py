@@ -136,3 +136,12 @@ class TrainedHMMTagger:
         graph = sorted(graph, key=lambda x:(x[0][2], x[1][3]))
 
         return graph
+
+    def _add_weight(self, edges):
+        def weight(from_, to_):
+            w = self.emission.get(to_[1], {}).get(to_[0], self.unknown_penalty)
+            w += self.transition.get((from_[1], to_[1]), self.unknown_penalty)
+            return w
+
+        graph = [(edge[0], edge[1], weight(edge[0], edge[1])) for edge in edges]
+        return graph
