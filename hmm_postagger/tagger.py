@@ -1,5 +1,8 @@
 from collections import defaultdict
 import json
+import re
+
+doublespace_pattern = re.compile(u'\s+', re.UNICODE)
 
 class TrainedHMMTagger:
     def __init__(self, model_path=None, transition=None, emission=None,
@@ -22,6 +25,8 @@ class TrainedHMMTagger:
             state:max(observations.values())
             for state, observations in self.emission.items()
         }
+
+        self._max_word_len = 12 # default
 
     def load_model_from_json(self, model_path):
         with open(model_path, encoding='utf-8') as f:
@@ -50,7 +55,7 @@ class TrainedHMMTagger:
         )
 
         # bos
-        log_prob += tagger.bos.get(sent[0][1], self.unknown_penalty)
+        log_prob += self.begin.get(sent[0][1], self.unknown_penalty)
 
         # transition probability
         transitions = [(t0, t1) for (_, t0), (_, t1) in zip(sequence, sequence[1:])]
@@ -67,3 +72,67 @@ class TrainedHMMTagger:
         log_prob /= len(sequence)
 
         return log_prob
+
+    def _get_pos(self, word):
+        return [tag for tag, words in self.emission.items() if word in words]
+
+    def _lookup(self, sentence):
+
+        def word_lookup(eojeol, offset):
+            n = len(eojeol)
+            words = [[] for _ in range(n)]
+            for b in range(n):
+                for r in range(1, self._max_word_len+1):
+                    e = b+r
+                    if e > n:
+                        continue
+                    sub = eojeol[b:e]
+                    for pos in self._get_pos(sub):
+                        words[b].append((sub, pos, b+offset, e+offset))
+            return words
+
+        sentence = doublespace_pattern.sub(' ', sentence)
+        sent = []
+        for eojeol in sentence.split():
+            sent += word_lookup(eojeol, offset=len(sent))
+        return sent
+
+    def _generate_graph(self, sentence):
+
+        def get_nonempty_first(sent, end, offset=0):
+            for i in range(offset, end):
+                if sent[i]:
+                    return i
+            return offset
+
+        chars = sentence.replace(' ','')
+        sent = self._lookup(sentence)
+        n_char = len(sent) + 1
+        sent.append([('EOS', 'EOS', n_char, n_char)])
+
+        nonempty_first = get_nonempty_first(sent, n_char)
+        if nonempty_first > 0:
+            sent[0].append((chars[:nonempty_first], 'Unk', 0, nonempty_first))
+
+        graph = []
+        for words in sent[:-1]:
+            for word in words:
+                begin = word[2]
+                end = word[3]
+                if not sent[end]:
+                    b = get_nonempty_first(sent, n_char, end)
+                    unk = (chars[end:b], 'Unk', end, b)
+                    graph.append((word, unk))
+                for adjacent in sent[end]:
+                    graph.append((word, adjacent))
+
+        unks = {node for _, node in graph if node[1] == 'Unk'}
+        for unk in unks:
+            for adjacent in sent[unk[3]]:
+                graph.append((unk, adjacent))
+        bos = ('BOS', 'BOS', 0, 0)
+        for word in sent[0]:
+            graph.append((bos, word))
+        graph = sorted(graph, key=lambda x:(x[0][2], x[1][3]))
+
+        return graph, sent
