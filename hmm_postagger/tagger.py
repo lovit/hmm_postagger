@@ -76,20 +76,20 @@ class TrainedHMMTagger:
         path, cost = ford_list(edges, nodes, bos, eos)
 
         # postprocessing
-        words = self._postprocess(path)
+        pos = self._postprocess(path)
         if inference_unknown:
-            words = self._inference_unknown(words)
+            pos = self._inference_unknown(pos)
 
-        return words
+        return pos
 
     def _postprocess(self, path):
-        words = []
-        for word, pos0, pos1, b, e in path:
+        pos = []
+        for word, tag0, tag1, b, e in path:
             morphs = word.split(' + ')
-            words.append((morphs[0], pos0))
+            pos.append((morphs[0], tag0))
             if len(morphs) == 2:
-                words.append((morphs[1], pos1))
-        return words
+                pos.append((morphs[1], tag1))
+        return pos
 
     def _inference_unknown(self, words):
         raise NotImplemented
@@ -132,15 +132,15 @@ class TrainedHMMTagger:
 
     def _word_lookup(self, eojeol, offset):
         n = len(eojeol)
-        words = [[] for _ in range(n)]
+        pos = [[] for _ in range(n)]
         for b in range(n):
             for r in range(1, self._max_word_len+1):
                 e = b+r
                 if e > n:
                     continue
                 sub = eojeol[b:e]
-                for pos in self._get_pos(sub):
-                    words[b].append((sub, pos, pos, b+offset, e+offset))
+                for tag in self._get_pos(sub):
+                    pos[b].append((sub, tag, tag, b+offset, e+offset))
                 for i in range(1, self._max_modifier_len + 1):
                     len_r = r - i
                     if not (0 <= len_r <= 2):
@@ -148,11 +148,11 @@ class TrainedHMMTagger:
                     try:
                         lemmas = self._lemmatize(sub, i)
                         if lemmas:
-                            for sub_, pos0, pos1 in lemmas:
-                                words[b].append((sub_, pos0, pos1, b+offset, e+offset))
+                            for sub_, tag0, tag1 in lemmas:
+                                pos[b].append((sub_, tag0, tag1, b+offset, e+offset))
                     except:
                         continue
-        return words
+        return pos
 
     def _lemmatize(self, word, i):
         l = word[:i]
