@@ -179,7 +179,13 @@ class TrainedHMMTagger:
 
         nonempty_first = get_nonempty_first(sent, n_char)
         if nonempty_first > 0:
-            sent[0].append((chars[:nonempty_first], self.unk_state, 0, nonempty_first))
+            sent[0].append(
+                (chars[:nonempty_first],
+                 self.unk_state,
+                 self.unk_state,
+                 0,
+                 nonempty_first)
+            )
 
         edges = []
         for words in sent[:-1]:
