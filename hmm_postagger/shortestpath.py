@@ -1,4 +1,4 @@
-def _ford_list(E, V, S, T):
+def ford_list(E, V, S, T):
 
     ## Initialize ##
     # (max weight + 1) * num of nodes
