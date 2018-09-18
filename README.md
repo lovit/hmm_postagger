@@ -84,7 +84,6 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
      ('았', 'Eomi'),
      ('다', 'Eomi')]
 
-
     이번 경기에서는 누가 이겼을까
     [('이번', 'Noun'),
      ('경기', 'Noun'),
@@ -96,7 +95,6 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
      ('었', 'Eomi'),
      ('을까', 'Eomi')]
 
-
     아이고 작업이 쉽지 않구만
     [('아이고', 'Exclamation'),
      ('작업', 'Noun'),
@@ -105,7 +103,6 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
      ('지', 'Eomi'),
      ('않', 'Verb'),
      ('구만', 'Eomi')]
-
 
     샤샨 괜찮아
     [('샤샤', 'Noun'),
@@ -162,7 +159,7 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
      ('좋', 'Adjective'),
      ('은', 'Eomi'),
      ('노래', 'Noun'),
-     ('지', 'Noun')]
+     ('야', 'Josa')]
 
 ## TODO
 
