@@ -39,4 +39,4 @@ def ford_list(E, V, S, T):
         prev_ = prev[prev_]
     path.append(S)
 
-    return {'paths':[path[::-1]], 'cost':d[T]}
+    return path[::-1][1:], d[T]
