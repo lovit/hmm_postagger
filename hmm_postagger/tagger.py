@@ -6,19 +6,22 @@ doublespace_pattern = re.compile(u'\s+', re.UNICODE)
 
 class TrainedHMMTagger:
     def __init__(self, model_path=None, transition=None, emission=None,
-        begin=None, transition_smoothing=1e-8, emission_smoothing=1e-8,
-        unknown_penalty=-10, end_state='EOS'):
+        begin=None, acceptable_transition=None, end_state='EOS'):
 
         self.transition = transition if transition else {}
         self.emission = emission if emission else {}
         self.begin = begin if begin else {}
-        self._ts = transition_smoothing
-        self._es = emission_smoothing
-        self.unknown_penalty = unknown_penalty
         self.end_state = end_state
 
         if isinstance(model_path, str):
             self.load_model_from_json(model_path)
+
+        if not acceptable_transition and self.transition:
+            acceptable_transition = set(self.transition.keys())
+
+        self.unknown_word = min(
+            min(words.values())/2 for words in self.emission.values())
+        self.unknown_transition = min(self.transition.values())
 
         # for user-dictionary, max value
         self._max_score = {
@@ -26,7 +29,7 @@ class TrainedHMMTagger:
             for state, observations in self.emission.items()
         }
 
-        self._max_word_len = 12 # default
+        self._max_word_len = 10 # default
 
     def load_model_from_json(self, model_path):
         with open(model_path, encoding='utf-8') as f:
@@ -50,22 +53,22 @@ class TrainedHMMTagger:
     def log_probability(self, sequence):
         # emission probability
         log_prob = sum(
-            (self.emission.get(t, {}).get(w,self.unknown_penalty)
+            (self.emission.get(t, {}).get(w,self.unknown_word)
              for w, t in sequence)
         )
 
         # bos
-        log_prob += self.begin.get(sent[0][1], self.unknown_penalty)
+        log_prob += self.begin.get(sent[0][1], self.unknown_word)
 
         # transition probability
         transitions = [(t0, t1) for (_, t0), (_, t1) in zip(sequence, sequence[1:])]
         log_prob += sum(
-            (self.transition.get(transition, self.unknown_penalty)
+            (self.transition.get(transition, self.unknown_transition)
              for transition in transitions))
 
         # eos
         log_prob += self.transition.get(
-            (sequence[-1][1], self.end_state), self.unknown_penalty
+            (sequence[-1][1], self.end_state), self.unknown_transition
         )
 
         # length normalization
@@ -139,8 +142,8 @@ class TrainedHMMTagger:
 
     def _add_weight(self, edges):
         def weight(from_, to_):
-            w = self.emission.get(to_[1], {}).get(to_[0], self.unknown_penalty)
-            w += self.transition.get((from_[1], to_[1]), self.unknown_penalty)
+            w = self.emission.get(to_[1], {}).get(to_[0], self.unknown_word)
+            w += self.transition.get((from_[1], to_[1]), self.unknown_transition)
             return w
 
         graph = [(edge[0], edge[1], weight(edge[0], edge[1])) for edge in edges]
