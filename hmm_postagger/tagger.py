@@ -43,6 +43,7 @@ class TrainedHMMTagger:
                 acceptable_transition.add((prev_, self.unk_state))
                 acceptable_transition.add((self.unk_state, next_))
 
+        self.acceptable_transition = acceptable_transition
         self.unknown_word = min(
             min(words.values())/2 for words in self.emission.values())
         self.unknown_transition = min(self.transition.values())
@@ -140,7 +141,8 @@ class TrainedHMMTagger:
                     unk = (chars[end:b], self.unk_state, end, b)
                     edges.append((word, unk))
                 for adjacent in sent[end]:
-                    edges.append((word, adjacent))
+                    if (word[1], adjacent[1]) in self.acceptable_transition:
+                        edges.append((word, adjacent))
 
         unks = {to_node for _, to_node in edges if to_node[1] == self.unk_state}
         for unk in unks:
