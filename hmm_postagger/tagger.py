@@ -120,7 +120,7 @@ class TrainedHMMTagger:
                 infered_tag = sorted(tag_prob, key=lambda x:-tag_prob[x])[0]
             pos_.append((pos_i[0], infered_tag))
 
-        return pos_
+        return pos_[1:]
 
     def log_probability(self, sequence):
         # emission probability

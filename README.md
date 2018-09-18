@@ -131,8 +131,7 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
     sent = '갹갹은 어디있어'
     tagger.tag(sent, inference_unknown=False)
 
-    [('BOS', 'BOS'),
-     ('갹갹', 'Unk'),
+    [('갹갹', 'Unk'),
      ('은', 'Josa'),
      ('어디', 'Noun'),
      ('있', 'Verb'),
@@ -143,8 +142,7 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
     sent = '갹갹은 어디있어'
     tagger.tag(sent, inference_unknown=True)
 
-    [('BOS', 'BOS'),
-     ('갹갹', 'Noun'),
+    [('갹갹', 'Noun'),
      ('은', 'Josa'),
      ('어디', 'Noun'),
      ('있', 'Verb'),
@@ -153,8 +151,7 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
 품사 추정의 기능을 이용하면 아래와 같이 영문과 한글이 혼용된 경우, 영어 단어의 품사도 추정할 수 있습니다.
 
     tt는 좋은 노래지
-    [('BOS', 'BOS'),
-     ('tt', 'Noun'),
+    [('tt', 'Noun'),
      ('는', 'Josa'),
      ('좋', 'Adjective'),
      ('은', 'Eomi'),
