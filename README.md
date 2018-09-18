@@ -147,7 +147,7 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
     tagger.tag(sent, inference_unknown=True)
 
     [('BOS', 'BOS'),
-     ('갹갹', 'Unk'),
+     ('갹갹', 'Noun'),
      ('은', 'Josa'),
      ('어디', 'Noun'),
      ('있', 'Verb'),
