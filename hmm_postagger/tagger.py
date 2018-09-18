@@ -66,7 +66,7 @@ class TrainedHMMTagger:
         for word in words:
             self.emission[tag][word] = append_score
 
-    def tag(self, sentence):
+    def tag(self, sentence, inference_unknown=True):
         # generate candidates
         edges, bos, eos = self._generate_edge(sentence)
         edges = self._add_weight(edges)
@@ -76,7 +76,11 @@ class TrainedHMMTagger:
         path, cost = ford_list(edges, nodes, bos, eos)
 
         # postprocessing
-        return self._postprocess(path)
+        words = self._postprocess(path)
+        if inference_unknown:
+            words = self._inference_unknown(words)
+
+        return words
 
     def _postprocess(self, path):
         words = []
@@ -86,6 +90,9 @@ class TrainedHMMTagger:
             if len(morphs) == 2:
                 words.append((morphs[1], pos1))
         return words
+
+    def _inference_unknown(self, words):
+        raise NotImplemented
 
     def log_probability(self, sequence):
         # emission probability
