@@ -63,13 +63,6 @@ class TrainedHMMTagger:
             for state, observations in self.emission.items()
         }
 
-    def append_user_dictionary(self, tag, words):
-        if not (tag in self.emission):
-            raise ValueError('%s does not exist in tagset' % tag)
-        append_score = self._max_score[tag]
-        for word in words:
-            self.emission[tag][word] = append_score
-
     def tag(self, sentence, inference_unknown=True):
         # generate candidates
         edges, bos, eos = self._generate_edge(sentence)
@@ -273,5 +266,6 @@ class TrainedHMMTagger:
             words = [words]
         if not (tag in self.emission):
             raise ValueError('{} tag does not exist in model'.format(tag))
+        append_score = self._max_score[tag]
         for word in words:
-            self.emission[tag][word] = self._max_score[tag]
+            self.emission[tag][word] = append_score
