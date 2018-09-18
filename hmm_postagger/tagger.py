@@ -16,6 +16,7 @@ class TrainedHMMTagger:
         self.end_state = end_state
         self.unk_state = unk_state
         self._max_word_len = 10 # default
+        self._max_eomi_len = 3
 
         if isinstance(model_path, str):
             self.load_model_from_json(model_path)
@@ -96,26 +97,25 @@ class TrainedHMMTagger:
     def _get_pos(self, word):
         return [tag for tag, words in self.emission.items() if word in words]
 
-    def _lookup(self, sentence):
-
-        def word_lookup(eojeol, offset):
-            n = len(eojeol)
-            words = [[] for _ in range(n)]
-            for b in range(n):
-                for r in range(1, self._max_word_len+1):
-                    e = b+r
-                    if e > n:
-                        continue
-                    sub = eojeol[b:e]
-                    for pos in self._get_pos(sub):
-                        words[b].append((sub, pos, b+offset, e+offset))
-            return words
-
+    def _sentence_lookup(self, sentence):
         sentence = doublespace_pattern.sub(' ', sentence)
         sent = []
         for eojeol in sentence.split():
-            sent += word_lookup(eojeol, offset=len(sent))
+            sent += self._word_lookup(eojeol, offset=len(sent))
         return sent
+
+    def _word_lookup(self, eojeol, offset):
+        n = len(eojeol)
+        words = [[] for _ in range(n)]
+        for b in range(n):
+            for r in range(1, self._max_word_len+1):
+                e = b+r
+                if e > n:
+                    continue
+                sub = eojeol[b:e]
+                for pos in self._get_pos(sub):
+                    words[b].append((sub, pos, pos, b+offset, e+offset))
+        return words
 
     def _generate_edge(self, sentence):
 
@@ -126,9 +126,9 @@ class TrainedHMMTagger:
             return offset
 
         chars = sentence.replace(' ','')
-        sent = self._lookup(sentence)
+        sent = self._sentence_lookup(sentence)
         n_char = len(sent) + 1
-        eos = (self.end_state, self.end_state, n_char-1, n_char)
+        eos = (self.end_state, self.end_state, self.end_state, n_char-1, n_char)
         sent.append([eos])
 
         nonempty_first = get_nonempty_first(sent, n_char)
@@ -138,11 +138,11 @@ class TrainedHMMTagger:
         edges = []
         for words in sent[:-1]:
             for word in words:
-                begin = word[2]
-                end = word[3]
+                begin = word[3]
+                end = word[4]
                 if not sent[end]:
                     b = get_nonempty_first(sent, n_char, end)
-                    unk = (chars[end:b], self.unk_state, end, b)
+                    unk = (chars[end:b], self.unk_state, self.unk_state, end, b)
                     edges.append((word, unk))
                 for adjacent in sent[end]:
                     if (word[1], adjacent[1]) in self.acceptable_transition:
@@ -152,10 +152,10 @@ class TrainedHMMTagger:
         for unk in unks:
             for adjacent in sent[unk[3]]:
                 edges.append((unk, adjacent))
-        bos = (self.begin_state, self.begin_state, 0, 0)
+        bos = (self.begin_state, self.begin_state, self.begin_state, 0, 0)
         for word in sent[0]:
             edges.append((bos, word))
-        edges = sorted(edges, key=lambda x:(x[0][2], x[1][3]))
+        edges = sorted(edges, key=lambda x:(x[0][3], x[1][4]))
 
         return edges, bos, eos
 
@@ -165,7 +165,7 @@ class TrainedHMMTagger:
             w += self.transition.get((from_[1], to_[1]), self.unknown_transition)
             return w
 
-        graph = [(edge[0], edge[1], weight(edge[0], edge[1])) for edge in edges]
+        graph = [(from_, to_, weight(from_, to_)) for from_, to_ in edges]
         return graph
 
     def add_user_dictionary(self, tag, words):
