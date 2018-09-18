@@ -17,6 +17,7 @@ class TrainedHMMTagger:
         self.unk_state = unk_state
         self._max_word_len = 10 # default
         self._max_eomi_len = 3
+        self._max_modifier_len = 4
 
         if isinstance(model_path, str):
             self.load_model_from_json(model_path)
@@ -115,7 +116,32 @@ class TrainedHMMTagger:
                 sub = eojeol[b:e]
                 for pos in self._get_pos(sub):
                     words[b].append((sub, pos, pos, b+offset, e+offset))
+                for i in range(1, self._max_modifier_len + 1):
+                    len_r = r - i
+                    if not (0 <= len_r <= 2):
+                        continue
+                    try:
+                        lemmas = self._parse_stem_and_eomi(sub, i)
+                        if lemmas:
+                            for sub, pos0, pos1 in lemmas:
+                                words[b].append((sub, pos0, pos1, b+offset, e+offset))
+                    except:
+                        continue
         return words
+
+    def _parse_stem_and_eomi(self, word, i):
+        l = word[:i]
+        r = word[i:]
+        lemmas = []
+        for stem, eomi in lemma_candidate(l, r):
+            if not (eomi in self.emission['Eomi']):
+                continue
+            word_ = stem + ' + ' + eomi
+            if stem in self.emission['Verb']:
+                lemmas.append((word_, 'Verb', 'Eomi'))
+            if stem in self.emission['Adjective']:
+                lemmas.append((word_, 'Adjective', 'Eomi'))
+        return lemmas
 
     def _generate_edge(self, sentence):
 
