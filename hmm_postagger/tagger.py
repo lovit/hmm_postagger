@@ -15,15 +15,31 @@ class TrainedHMMTagger:
         self.begin_state = begin_state
         self.end_state = end_state
         self.unk_state = unk_state
+        self._max_word_len = 10 # default
 
         if isinstance(model_path, str):
             self.load_model_from_json(model_path)
+            self._initialize(acceptable_transition)
+        elif (transition is not None) and (emission is not None):
+            self._initialize(acceptable_transition)
+        else:
+            raise ValueError('Insert model path or transition and emission manually')
 
+    def load_model_from_json(self, model_path):
+        with open(model_path, encoding='utf-8') as f:
+            model = json.load(f)
+        self.emission = model['emission']
+        self.transition = model['transition']
+        self.transition = {tuple(states.split()):prob for states, prob in self.transition.items()}
+        self.begin = model['begin']
+        del model
+
+    def _initialize(self, acceptable_transition):
         if not acceptable_transition and self.transition:
             # use trained transition
             acceptable_transition = set(self.transition.keys())
             # add unknown state transiton
-            for prev_, next_ in self.transitions.keys():
+            for prev_, next_ in self.transition.keys():
                 acceptable_transition.add((prev_, self.unk_state))
                 acceptable_transition.add((self.unk_state, next_))
 
@@ -36,17 +52,6 @@ class TrainedHMMTagger:
             state:max(observations.values())
             for state, observations in self.emission.items()
         }
-
-        self._max_word_len = 10 # default
-
-    def load_model_from_json(self, model_path):
-        with open(model_path, encoding='utf-8') as f:
-            model = json.load(f)
-        self.emission = model['emission']
-        self.transition = model['transition']
-        self.transition = {tuple(states.split()):prob for states, prob in self.transition.items()}
-        self.begin = model['begin']
-        del model
 
     def append_user_dictionary(self, tag, words):
         if not (tag in self.emission):
@@ -137,7 +142,7 @@ class TrainedHMMTagger:
                 for adjacent in sent[end]:
                     edges.append((word, adjacent))
 
-        unks = {node for _, node in nodes if node[1] == self.unk_state}
+        unks = {to_node for _, to_node in edges if to_node[1] == self.unk_state}
         for unk in unks:
             for adjacent in sent[unk[3]]:
                 edges.append((unk, adjacent))
