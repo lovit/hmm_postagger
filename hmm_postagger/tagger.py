@@ -91,8 +91,32 @@ class TrainedHMMTagger:
                 pos.append((morphs[1], tag1))
         return pos
 
-    def _inference_unknown(self, words):
-        raise NotImplemented
+    def _inference_unknown(self, pos):
+        pos_ = []
+        for i, pos_i in enumerate(pos[:-1]):
+            if not (pos_i[1] == self.unk_state):
+                pos_.append(pos_i)
+                continue
+
+            # previous -> current transition
+            if i == 1:
+                tag_prob = {tag:prob for tag, prob in self.begin.items()}
+            else:
+                tag_prob = {tag:prob for (prev_tag, tag), prob in self.transition.items()
+                            if prev_tag == pos[i-1][1]}
+
+            # current -> next transition
+            for (tag, next_tag), prob in self.transition.items():
+                if next_tag == pos[i+1][1]:
+                    tag_prob[tag] = tag_prob.get(tag, 0) + prob
+
+            if not tag_prob:
+                infered_tag = 'Noun'
+            else:
+                infered_tag = sorted(tag_prob, key=lambda x:-tag_prob[x])[0]
+            pos_.append((pos_i[0], infered_tag))
+
+        return pos_
 
     def log_probability(self, sequence):
         # emission probability
