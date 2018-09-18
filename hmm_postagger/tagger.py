@@ -62,7 +62,11 @@ class TrainedHMMTagger:
             self.emission[tag][word] = append_score
 
     def decode(self, sequence):
-        raise NotImplemented
+        edges, bos, eos = self._generate_edge(sentence)
+        edges = self._add_weight(edges)
+        nodes = {node for edge in edges for node in edge[:2]}
+        return edges, nodes, bos, eos
+        return ford_list(edges, nodes, bos, eos)
 
     def log_probability(self, sequence):
         # emission probability
@@ -125,7 +129,8 @@ class TrainedHMMTagger:
         chars = sentence.replace(' ','')
         sent = self._lookup(sentence)
         n_char = len(sent) + 1
-        sent.append([(self.end_state, self.end_state, n_char, n_char)])
+        eos = (self.end_state, self.end_state, n_char-1, n_char)
+        sent.append([eos])
 
         nonempty_first = get_nonempty_first(sent, n_char)
         if nonempty_first > 0:
@@ -153,7 +158,7 @@ class TrainedHMMTagger:
             edges.append((bos, word))
         edges = sorted(edges, key=lambda x:(x[0][2], x[1][3]))
 
-        return edges
+        return edges, bos, eos
 
     def _add_weight(self, edges):
         def weight(from_, to_):
