@@ -22,6 +22,9 @@ class TrainedHMMTagger:
         self._max_eomi_len = 3
         self._max_modifier_len = 4
 
+        # 'eg) 좋은 노래야 -> [좋, 은, 노랗, 애야] vs [좋, 은, 노래, 야]'
+        self._noun_preference = 3.0
+
         if isinstance(model_path, str):
             self.load_model_from_json(model_path)
             self._initialize(acceptable_transition)
@@ -245,7 +248,12 @@ class TrainedHMMTagger:
     def _add_weight(self, edges):
         def weight(from_, to_):
             morphs = to_[0].split(' + ')
+            # emission probability of first word
             w = self.emission.get(to_[1], {}).get(morphs[0], self.unknown_word)
+            if to_[1] == 'Noun':
+                # - log prob
+                w /= self._noun_preference
+            # emission probability of second word
             if len(morphs) == 2:
                 w += self.emission.get(to_[2], {}).get(morphs[1], self.unknown_word)
             w += self.transition.get((from_[2], to_[1]), self.unknown_transition)
