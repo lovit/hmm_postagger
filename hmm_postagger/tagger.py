@@ -2,6 +2,9 @@ from collections import defaultdict
 import json
 import re
 
+from .path import ford_list
+from .lemmatizer import lemma_candidate
+
 doublespace_pattern = re.compile(u'\s+', re.UNICODE)
 
 class TrainedHMMTagger:
