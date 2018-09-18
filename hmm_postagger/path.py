@@ -33,10 +33,10 @@ def ford_list(E, V, S, T):
     if prev_ == S:
         return {'paths':[[prev_, S][::-1]], 'cost':d[T]}
 
-    path = []
+    path = [T]
     while prev_ != S:
         path.append(prev_)
         prev_ = prev[prev_]
     path.append(S)
 
-    return path[::-1][1:], d[T]
+    return path[::-1], d[T]
