@@ -246,17 +246,20 @@ class TrainedHMMTagger:
         return edges, bos, eos
 
     def _add_weight(self, edges):
+
         def weight(from_, to_):
             morphs = to_[0].split(' + ')
-            # emission probability of first word
+
+            # score of first word
             w = self.emission.get(to_[1], {}).get(morphs[0], self.unknown_word)
-            if to_[1] == 'Noun':
-                # - log prob
-                w /= self._noun_preference
-            # emission probability of second word
+            if to_[1] == 'Noun': ## noun preference
+                w /= self._noun_preference # because score is - log prob
+            w += self.transition.get((from_[2], to_[1]), self.unknown_transition)
+
+            # score of second word
             if len(morphs) == 2:
                 w += self.emission.get(to_[2], {}).get(morphs[1], self.unknown_word)
-            w += self.transition.get((from_[2], to_[1]), self.unknown_transition)
+                w += self.transition.get(to_[1], {}).get(to_[2], self.unknown_transition)
             return w
 
         graph = [(from_, to_, weight(from_, to_)) for from_, to_ in edges]
