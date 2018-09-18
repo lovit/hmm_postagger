@@ -1,3 +1,4 @@
+from .lemmatizer import lemma_candidate
 from .path import ford_list
 from .trainer import CorpusTrainer
 from .tagger import TrainedHMMTagger
