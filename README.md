@@ -127,6 +127,43 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
      ('았', 'Eomi'),
      ('다', 'Eomi')]
 
+### Inferring unknown word
+
+형태소 분석을 하여도 전혀 보지 못한 string 이 존재할 수 있습니다. '갹갹' 이라는 단어는 등록된 형태소로도 분해하지 못합니다.
+
+    sent = '갹갹은 어디있어'
+    tagger.tag(sent, inference_unknown=False)
+
+    [('BOS', 'BOS'),
+     ('갹갹', 'Unk'),
+     ('은', 'Josa'),
+     ('어디', 'Noun'),
+     ('있', 'Verb'),
+     ('어', 'Eomi')]
+
+위와 같은 경우에 '갹갹'의 앞 단어 (BOS) 에서의 state transition probability 와 '갹갹'의 뒤 단어 '은/josa'으로의 state transition probability 를 고려하여 '갹갹'의 품사를 추정합니다. inference_unknown 의 기본값은 True 입니다.
+
+    sent = '갹갹은 어디있어'
+    tagger.tag(sent, inference_unknown=True)
+
+    [('BOS', 'BOS'),
+     ('갹갹', 'Unk'),
+     ('은', 'Josa'),
+     ('어디', 'Noun'),
+     ('있', 'Verb'),
+     ('어', 'Eomi')]
+
+품사 추정의 기능을 이용하면 아래와 같이 영문과 한글이 혼용된 경우, 영어 단어의 품사도 추정할 수 있습니다.
+
+    tt는 좋은 노래지
+    [('BOS', 'BOS'),
+     ('tt', 'Noun'),
+     ('는', 'Josa'),
+     ('좋', 'Adjective'),
+     ('은', 'Eomi'),
+     ('노래', 'Noun'),
+     ('지', 'Noun')]
+
 ## TODO
 
 ###  기호 처리
