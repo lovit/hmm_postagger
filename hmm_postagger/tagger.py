@@ -141,8 +141,8 @@ class TrainedHMMTagger:
                     try:
                         lemmas = self._parse_stem_and_eomi(sub, i)
                         if lemmas:
-                            for sub, pos0, pos1 in lemmas:
-                                words[b].append((sub, pos0, pos1, b+offset, e+offset))
+                            for sub_, pos0, pos1 in lemmas:
+                                words[b].append((sub_, pos0, pos1, b+offset, e+offset))
                     except:
                         continue
         return words
