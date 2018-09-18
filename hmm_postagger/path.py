@@ -2,7 +2,7 @@ def ford_list(E, V, S, T):
 
     ## Initialize ##
     # (max weight + 1) * num of nodes
-    inf = (max((weight for from_, to_, weight in E)) + 1) * len(V)
+    inf = (min((weight for from_, to_, weight in E)) + 1) * len(V)
 
     # distance
     d = {node:0 if node == S else inf for node in V}
@@ -16,7 +16,7 @@ def ford_list(E, V, S, T):
         changed = False
         for u, v, Wuv in E:
             d_new = d[u] + Wuv
-            if d_new < d[v]:
+            if d_new > d[v]:
                 d[v] = d_new
                 prev[v] = u
                 changed = True
@@ -25,8 +25,8 @@ def ford_list(E, V, S, T):
 
     # Checking negative cycle loop
     for u, v, Wuv in E:
-        if d[u] + Wuv < d[v]:
-            raise ValueError('Negative cycle exists')
+        if d[u] + Wuv > d[v]:
+            raise ValueError('Cycle exists')
 
     # Finding path
     prev_ = prev[T]
