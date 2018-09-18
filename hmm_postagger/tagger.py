@@ -139,7 +139,7 @@ class TrainedHMMTagger:
                     if not (0 <= len_r <= 2):
                         continue
                     try:
-                        lemmas = self._parse_stem_and_eomi(sub, i)
+                        lemmas = self._lemmatize(sub, i)
                         if lemmas:
                             for sub_, pos0, pos1 in lemmas:
                                 words[b].append((sub_, pos0, pos1, b+offset, e+offset))
@@ -147,18 +147,20 @@ class TrainedHMMTagger:
                         continue
         return words
 
-    def _parse_stem_and_eomi(self, word, i):
+    def _lemmatize(self, word, i):
         l = word[:i]
         r = word[i:]
         lemmas = []
-        for stem, eomi in lemma_candidate(l, r):
-            if not (eomi in self.emission['Eomi']):
-                continue
-            word_ = stem + ' + ' + eomi
-            if stem in self.emission['Verb']:
+        len_word = len(word)
+        for l_, r_ in lemma_candidate(l, r):
+            word_ = l_ + ' + ' + r_
+            if (l_ in self.emission['Verb']) and (r_ in self.emission['Eomi']):
                 lemmas.append((word_, 'Verb', 'Eomi'))
-            if stem in self.emission['Adjective']:
+            if (l_ in self.emission['Adjective']) and (r_ in self.emission['Eomi']):
                 lemmas.append((word_, 'Adjective', 'Eomi'))
+            if len_word > 1 and not (word in self.emission['Noun']):
+                if (l_ in self.emission['Noun']) and (r_ in self.emission['Josa']):
+                    lemmas.append((word_, 'Noun', 'Josa'))
         return lemmas
 
     def _generate_edge(self, sentence):
