@@ -24,6 +24,7 @@ class TrainedHMMTagger:
 
         # 'eg) 좋은 노래야 -> [좋, 은, 노랗, 애야] vs [좋, 은, 노래, 야]'
         self._noun_preference = 3.0
+        self._a_syllable_noun_penalty = 5.0
 
         if isinstance(model_path, str):
             self.load_model_from_json(model_path)
@@ -254,6 +255,8 @@ class TrainedHMMTagger:
             w = self.emission.get(to_[1], {}).get(morphs[0], self.unknown_word)
             if to_[1] == 'Noun': ## noun preference
                 w /= self._noun_preference # because score is - log prob
+                if len(morphs[0]) == 1:
+                    w *= self._a_syllable_noun_penalty
             w += self.transition.get((from_[2], to_[1]), self.unknown_transition)
 
             # score of second word
