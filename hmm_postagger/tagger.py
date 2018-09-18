@@ -61,11 +61,10 @@ class TrainedHMMTagger:
         for word in words:
             self.emission[tag][word] = append_score
 
-    def decode(self, sequence):
+    def tag(self, sequence):
         edges, bos, eos = self._generate_edge(sentence)
         edges = self._add_weight(edges)
         nodes = {node for edge in edges for node in edge[:2]}
-        return edges, nodes, bos, eos
         return ford_list(edges, nodes, bos, eos)
 
     def log_probability(self, sequence):
