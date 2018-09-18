@@ -163,3 +163,11 @@ class TrainedHMMTagger:
 
         graph = [(edge[0], edge[1], weight(edge[0], edge[1])) for edge in edges]
         return graph
+
+    def add_user_dictionary(self, tag, words):
+        if isinstance(words, str):
+            words = [words]
+        if not (tag in self.emission):
+            raise ValueError('{} tag does not exist in model'.format(tag))
+        for word in words:
+            self.emission[tag][word] = self._max_score[tag]
