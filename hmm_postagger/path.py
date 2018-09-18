@@ -2,7 +2,7 @@ def ford_list(E, V, S, T):
 
     ## Initialize ##
     # (max weight + 1) * num of nodes
-    inf = (min((weight for from_, to_, weight in E)) + 1) * len(V)
+    inf = (min((weight for from_, to_, weight in E)) - 1) * len(V)
 
     # distance
     d = {node:0 if node == S else inf for node in V}
