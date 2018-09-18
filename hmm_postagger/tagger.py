@@ -63,11 +63,26 @@ class TrainedHMMTagger:
         for word in words:
             self.emission[tag][word] = append_score
 
-    def tag(self, sequence):
+    def tag(self, sentence):
+        # generate candidates
         edges, bos, eos = self._generate_edge(sentence)
         edges = self._add_weight(edges)
         nodes = {node for edge in edges for node in edge[:2]}
-        return ford_list(edges, nodes, bos, eos)
+
+        # choose optimal sequence
+        path, cost = ford_list(edges, nodes, bos, eos)
+
+        # postprocessing
+        return self._postprocess(path)
+
+    def _postprocess(self, path):
+        words = []
+        for word, pos0, pos1, b, e in path:
+            morphs = word.split(' + ')
+            words.append((morphs[0], pos0))
+            if len(morphs) == 2:
+                words.append((morphs[1], pos1))
+        return words
 
     def log_probability(self, sequence):
         # emission probability
