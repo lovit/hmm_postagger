@@ -63,7 +63,8 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
     sents = [
         '주간아이돌에 아이오아이가 출연했다',
         '이번 경기에서는 누가 이겼을까',
-        '아이고 작업이 쉽지 않구만'
+        '아이고 작업이 쉽지 않구만',
+        '샤샨 괜찮아'
     ]
 
     for sent in sents:
