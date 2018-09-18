@@ -6,18 +6,26 @@ doublespace_pattern = re.compile(u'\s+', re.UNICODE)
 
 class TrainedHMMTagger:
     def __init__(self, model_path=None, transition=None, emission=None,
-        begin=None, acceptable_transition=None, end_state='EOS'):
+        begin=None, acceptable_transition=None,
+        begin_state='BOS', end_state='EOS', unk_state='Unk'):
 
         self.transition = transition if transition else {}
         self.emission = emission if emission else {}
         self.begin = begin if begin else {}
+        self.begin_state = begin_state
         self.end_state = end_state
+        self.unk_state = unk_state
 
         if isinstance(model_path, str):
             self.load_model_from_json(model_path)
 
         if not acceptable_transition and self.transition:
+            # use trained transition
             acceptable_transition = set(self.transition.keys())
+            # add unknown state transiton
+            for prev_, next_ in self.transitions.keys():
+                acceptable_transition.add((prev_, self.unk_state))
+                acceptable_transition.add((self.unk_state, next_))
 
         self.unknown_word = min(
             min(words.values())/2 for words in self.emission.values())
@@ -111,11 +119,11 @@ class TrainedHMMTagger:
         chars = sentence.replace(' ','')
         sent = self._lookup(sentence)
         n_char = len(sent) + 1
-        sent.append([('EOS', 'EOS', n_char, n_char)])
+        sent.append([(self.end_state, self.end_state, n_char, n_char)])
 
         nonempty_first = get_nonempty_first(sent, n_char)
         if nonempty_first > 0:
-            sent[0].append((chars[:nonempty_first], 'Unk', 0, nonempty_first))
+            sent[0].append((chars[:nonempty_first], self.unk_state, 0, nonempty_first))
 
         edges = []
         for words in sent[:-1]:
@@ -124,16 +132,16 @@ class TrainedHMMTagger:
                 end = word[3]
                 if not sent[end]:
                     b = get_nonempty_first(sent, n_char, end)
-                    unk = (chars[end:b], 'Unk', end, b)
+                    unk = (chars[end:b], self.unk_state, end, b)
                     edges.append((word, unk))
                 for adjacent in sent[end]:
                     edges.append((word, adjacent))
 
-        unks = {node for _, node in nodes if node[1] == 'Unk'}
+        unks = {node for _, node in nodes if node[1] == self.unk_state}
         for unk in unks:
             for adjacent in sent[unk[3]]:
                 edges.append((unk, adjacent))
-        bos = ('BOS', 'BOS', 0, 0)
+        bos = (self.begin_state, self.begin_state, 0, 0)
         for word in sent[0]:
             edges.append((bos, word))
         edges = sorted(edges, key=lambda x:(x[0][2], x[1][3]))
