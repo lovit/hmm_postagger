@@ -207,8 +207,11 @@ class TrainedHMMTagger:
 
     def _add_weight(self, edges):
         def weight(from_, to_):
-            w = self.emission.get(to_[1], {}).get(to_[0], self.unknown_word)
-            w += self.transition.get((from_[1], to_[1]), self.unknown_transition)
+            morphs = to_[0].split(' + ')
+            w = self.emission.get(to_[1], {}).get(morphs[0], self.unknown_word)
+            if len(morphs) == 2:
+                w += self.emission.get(to_[2], {}).get(morphs[1], self.unknown_word)
+            w += self.transition.get((from_[2], to_[1]), self.unknown_transition)
             return w
 
         graph = [(from_, to_, weight(from_, to_)) for from_, to_ in edges]
