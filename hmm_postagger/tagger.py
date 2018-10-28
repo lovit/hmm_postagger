@@ -4,20 +4,18 @@ import re
 
 from .path import ford_list
 from .lemmatizer import lemma_candidate
+from .utils import bos as bos_state
+from .utils import eos as eos_state
+from .utils import unk as unk_state
 
 doublespace_pattern = re.compile(u'\s+', re.UNICODE)
 
 class TrainedHMMTagger:
-    def __init__(self, model_path=None, transition=None, emission=None,
-        begin=None, acceptable_transition=None,
-        begin_state='BOS', end_state='EOS', unk_state='Unk'):
+    def __init__(self, model_path=None, transition=None,
+        emission=None, acceptable_transition=None):
 
         self.transition = transition if transition else {}
         self.emission = emission if emission else {}
-        self.begin = begin if begin else {}
-        self.begin_state = begin_state
-        self.end_state = end_state
-        self.unk_state = unk_state
         self._max_word_len = 10 # default
         self._max_eomi_len = 3
         self._max_modifier_len = 4
@@ -40,7 +38,6 @@ class TrainedHMMTagger:
         self.emission = model['emission']
         self.transition = model['transition']
         self.transition = {tuple(states.split()):prob for states, prob in self.transition.items()}
-        self.begin = model['begin']
         del model
 
     def _initialize(self, acceptable_transition):
@@ -49,8 +46,8 @@ class TrainedHMMTagger:
             acceptable_transition = set(self.transition.keys())
             # add unknown state transiton
             for prev_, next_ in self.transition.keys():
-                acceptable_transition.add((prev_, self.unk_state))
-                acceptable_transition.add((self.unk_state, next_))
+                acceptable_transition.add((prev_, unk_state))
+                acceptable_transition.add((unk_state, next_))
 
         self.acceptable_transition = acceptable_transition
         self.unknown_word = min(
@@ -64,22 +61,27 @@ class TrainedHMMTagger:
         }
 
     def tag(self, sentence, inference_unknown=True):
+        # lookup
+        chars = sentence.replace(' ','')
+        lookupeds = self._sentence_lookup(sentence)
+
         # generate candidates
-        edges, bos, eos = self._generate_edge(sentence)
+        edges, bos, eos = self._generate_edge(chars, lookupeds)
         edges = self._add_weight(edges)
         nodes = {node for edge in edges for node in edge[:2]}
 
         # choose optimal sequence
         path, cost = ford_list(edges, nodes, bos, eos)
 
-        # postprocessing
-        pos = self._postprocess(path)
+        pos = self._separate_morphemes(path)
+
         if inference_unknown:
             pos = self._inference_unknown(pos)
 
+        pos = self._postprocess(pos)
         return pos
 
-    def _postprocess(self, path):
+    def _separate_morphemes(self, path):
         pos = []
         for word, tag0, tag1, b, e in path:
             morphs = word.split(' + ')
@@ -91,16 +93,16 @@ class TrainedHMMTagger:
     def _inference_unknown(self, pos):
         pos_ = []
         for i, pos_i in enumerate(pos[:-1]):
-            if not (pos_i[1] == self.unk_state):
+            # skip bos or known state
+            if i == 0 or not (pos_i[1] == unk_state):
                 pos_.append(pos_i)
                 continue
 
             # previous -> current transition
-            if i == 1:
-                tag_prob = {tag:prob for tag, prob in self.begin.items()}
-            else:
-                tag_prob = {tag:prob for (prev_tag, tag), prob in self.transition.items()
-                            if prev_tag == pos[i-1][1]}
+            tag_prob = {
+                tag:prob for (prev_tag, tag), prob in self.transition.items()
+                if prev_tag == pos[i-1][1]
+            }
 
             # current -> next transition
             for (tag, next_tag), prob in self.transition.items():
@@ -111,9 +113,14 @@ class TrainedHMMTagger:
                 infered_tag = 'Noun'
             else:
                 infered_tag = sorted(tag_prob, key=lambda x:-tag_prob[x])[0]
-            pos_.append((pos_i[0], infered_tag))
 
-        return pos_[1:]
+            pos_.append((pos_i[0], infered_tag))
+        pos_.append(pos[-1])
+
+        return pos_
+
+    def _postprocess(self, pos):
+        return pos[1:-1]
 
     def log_probability(self, sequence):
         # emission probability
@@ -123,7 +130,9 @@ class TrainedHMMTagger:
         )
 
         # bos
-        log_prob += self.begin.get(sent[0][1], self.unknown_word)
+        log_prob += self.transition.get(
+            (bos_state, sent[0][1]), self.unknown_transition
+        )
 
         # transition probability
         transitions = [(t0, t1) for (_, t0), (_, t1) in zip(sequence, sequence[1:])]
@@ -133,7 +142,7 @@ class TrainedHMMTagger:
 
         # eos
         log_prob += self.transition.get(
-            (sequence[-1][1], self.end_state), self.unknown_transition
+            (sequence[-1][1], eos_state), self.unknown_transition
         )
 
         # length normalization
@@ -191,7 +200,7 @@ class TrainedHMMTagger:
                     lemmas.append((word_, 'Noun', 'Josa'))
         return lemmas
 
-    def _generate_edge(self, sentence):
+    def _generate_edge(self, chars, sent):
 
         def get_nonempty_first(sent, end, offset=0):
             for i in range(offset, end):
@@ -199,42 +208,44 @@ class TrainedHMMTagger:
                     return i
             return offset
 
-        chars = sentence.replace(' ','')
-        sent = self._sentence_lookup(sentence)
         n_char = len(sent) + 1
-        eos = (self.end_state, self.end_state, self.end_state, n_char-1, n_char)
+        eos = (eos_state, eos_state, eos_state, n_char-1, n_char)
         sent.append([eos])
 
+        # check first word is unknown
         nonempty_first = get_nonempty_first(sent, n_char)
         if nonempty_first > 0:
-            sent[0].append(
-                (chars[:nonempty_first],
-                 self.unk_state,
-                 self.unk_state,
-                 0,
-                 nonempty_first)
-            )
+            e = nonempty_first
+            first_node = (chars[:e], unk_state, unk_state, 0, e)
+            sent[0].append(first_node)
 
         edges = []
         for words in sent[:-1]:
             for word in words:
                 begin = word[3]
                 end = word[4]
+                # if exist adjacent node
                 if not sent[end]:
                     b = get_nonempty_first(sent, n_char, end)
-                    unk = (chars[end:b], self.unk_state, self.unk_state, end, b)
+                    unk = (chars[end:b], unk_state, unk_state, end, b)
                     edges.append((word, unk))
+                # else
                 for adjacent in sent[end]:
                     if (word[1], adjacent[1]) in self.acceptable_transition:
                         edges.append((word, adjacent))
 
-        unks = {to_node for _, to_node in edges if to_node[1] == self.unk_state}
+        # edge from unk to next node
+        unks = {to_node for _, to_node in edges if to_node[1] == unk_state}
         for unk in unks:
             for adjacent in sent[unk[3]]:
                 edges.append((unk, adjacent))
-        bos = (self.begin_state, self.begin_state, self.begin_state, 0, 0)
+
+        # edge from bos to first node
+        bos = (bos_state, bos_state, bos_state, 0, 0)
         for word in sent[0]:
             edges.append((bos, word))
+
+        # sort by (begin index, end index)
         edges = sorted(edges, key=lambda x:(x[0][3], x[1][4]))
 
         return edges, bos, eos

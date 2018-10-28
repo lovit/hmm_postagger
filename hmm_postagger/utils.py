@@ -19,3 +19,4 @@ def check_dirs(path):
 
 bos = 'BOS'
 eos = 'EOS'
+unk = 'Unk'
