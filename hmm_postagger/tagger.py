@@ -12,13 +12,17 @@ doublespace_pattern = re.compile(u'\s+', re.UNICODE)
 
 class TrainedHMMTagger:
     def __init__(self, model_path=None, transition=None,
-        emission=None, acceptable_transition=None):
+        emission=None, acceptable_transition=None, no_inference_tags=None):
 
         self.transition = transition if transition else {}
         self.emission = emission if emission else {}
         self._max_word_len = 10 # default
         self._max_eomi_len = 3
         self._max_modifier_len = 4
+
+        if no_inference_tags is None:
+            no_inference_tags = [eos_state, 'Pronoun', 'Number']
+        self._no_inference_tags = no_inference_tags
 
         # 'eg) 좋은 노래야 -> [좋, 은, 노랗, 애야] vs [좋, 은, 노래, 야]'
         self._noun_preference = 3.0
@@ -101,13 +105,17 @@ class TrainedHMMTagger:
             # previous -> current transition
             tag_prob = {
                 tag:prob for (prev_tag, tag), prob in self.transition.items()
-                if prev_tag == pos[i-1][1] and tag != eos_state
+                if prev_tag == pos[i-1][1]
             }
 
             # current -> next transition
             for (tag, next_tag), prob in self.transition.items():
                 if next_tag == pos[i+1][1]:
                     tag_prob[tag] = tag_prob.get(tag, 0) + prob
+
+            for tag in self._no_inference_tags:
+                if tag in tag_prob:
+                    tag_prob.pop(tag)
 
             if not tag_prob:
                 infered_tag = 'Noun'
