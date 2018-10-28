@@ -51,7 +51,8 @@ class CorpusTrainer:
                     for pos, words in emission.items()}
         emission = {pos:words for pos, words in emission.items()
                     if sum(words.values()) >= self.min_count_tag}
-        transition = {pos:count for pos, count in transition.items() if pos[0] in emission}
+        transition = {pos:count for pos, count in transition.items()
+                      if (pos[0] in emission) or (pos[0] == bos) }
 
         return emission, transition
 
