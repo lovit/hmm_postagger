@@ -16,3 +16,6 @@ def check_dirs(path):
     dirname = os.path.dirname(path)
     if dirname and dirname != '.' and not os.path.exists(dirname):
         os.makedirs(dirname)
+
+bos = 'BOS'
+eos = 'EOS'
