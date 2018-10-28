@@ -101,7 +101,7 @@ class TrainedHMMTagger:
             # previous -> current transition
             tag_prob = {
                 tag:prob for (prev_tag, tag), prob in self.transition.items()
-                if prev_tag == pos[i-1][1]
+                if prev_tag == pos[i-1][1] and tag != eos_state
             }
 
             # current -> next transition
@@ -208,17 +208,19 @@ class TrainedHMMTagger:
                     return i
             return offset
 
-        n_char = len(sent) + 1
-        eos = (eos_state, eos_state, eos_state, n_char-1, n_char)
+        n_char = len(sent)
+        eos_end_index = n_char + 1
+        eos = (eos_state, eos_state, eos_state, n_char, eos_end_index)
         sent.append([eos])
 
         # check first word is unknown
-        nonempty_first = get_nonempty_first(sent, n_char)
+        nonempty_first = get_nonempty_first(sent, eos_end_index)
         if nonempty_first > 0:
             e = nonempty_first
             first_node = (chars[:e], unk_state, unk_state, 0, e)
             sent[0].append(first_node)
 
+        last_end_index = 0
         edges = []
         for words in sent[:-1]:
             for word in words:
@@ -226,13 +228,23 @@ class TrainedHMMTagger:
                 end = word[4]
                 # if exist adjacent node
                 if not sent[end]:
-                    b = get_nonempty_first(sent, n_char, end)
+                    b = get_nonempty_first(sent, eos_end_index, end)
                     unk = (chars[end:b], unk_state, unk_state, end, b)
                     edges.append((word, unk))
                 # else
                 for adjacent in sent[end]:
                     if (word[1], adjacent[1]) in self.acceptable_transition:
                         edges.append((word, adjacent))
+                # update last end index
+                if last_end_index < end:
+                    last_end_index = end
+
+        # if last word is unknown
+        if last_end_index < n_char:
+            end = last_end_index
+            unk_word = chars[end:n_char]
+            unk = (unk_word, unk_state, unk_state, end, n_char)
+            edges.append((unk, eos))
 
         # edge from unk to next node
         unks = {to_node for _, to_node in edges if to_node[1] == unk_state}
