@@ -10,6 +10,7 @@ class Corpus:
                 if self.num_sent > 0 and i > self.num_sent:
                     break
                 wordpos = [token.rsplit('/', 1) for token in sent.split()]
+                wordpos = [wp for wp in wordpos if len(wp) == 2 and wp[0] and wp[1]]
                 yield wordpos
 
 def check_dirs(path):
