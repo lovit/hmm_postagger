@@ -4,13 +4,17 @@ import math
 
 from .utils import check_dirs
 from .utils import bos, eos
+from .utils import has_alphabet
 
 class CorpusTrainer:
-    def __init__(self, tagset=None, min_count_tag=5, min_count_word=1, verbose=True):
+    def __init__(self, tagset=None, min_count_tag=5,
+        min_count_word=1, verbose=True, remove_alphabet=True):
+
         self.tagset = tagset
         self.min_count_tag = min_count_tag
         self.min_count_word = min_count_word
         self.verbose = verbose
+        self.remove_alphabet = remove_alphabet
 
     def train(self, corpus, model_path=None):
 
@@ -51,6 +55,17 @@ class CorpusTrainer:
                     for pos, words in emission.items()}
         emission = {pos:words for pos, words in emission.items()
                     if sum(words.values()) >= self.min_count_tag}
+
+        if self.remove_alphabet:
+
+            def remove_alphabet_words(words):
+                words_ = {word:count for word, count in words.items()
+                          if not has_alphabet(word)}
+                return words_
+
+            emission = {pos:remove_alphabet_words(words)
+                        for pos, words in emission.items()}
+
         transition = {pos:count for pos, count in transition.items()
                       if (pos[0] in emission) or (pos[0] == bos) }
 

@@ -1,4 +1,5 @@
 import os
+import re
 
 class Corpus:
     def __init__(self, path, num_sent=-1):
@@ -17,6 +18,13 @@ def check_dirs(path):
     dirname = os.path.dirname(path)
     if dirname and dirname != '.' and not os.path.exists(dirname):
         os.makedirs(dirname)
+
+alphabet = re.compile('[a-zA-Z]+')
+
+def has_alphabet(word):
+    if alphabet.findall(word):
+        return True
+    return False
 
 bos = 'BOS'
 eos = 'EOS'
