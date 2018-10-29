@@ -15,8 +15,8 @@ models/ 에는 세종 말뭉치를 이용하여 학습한 HMM 의 emission, tran
     from hmm_postagger import Corpus
     from hmm_postagger import CorpusTrainer
 
-    data_path = '../data/sejong_simpletag.txt'
-    model_path = '../models/sejong_simple_hmm.json'
+    data_path = '../data/sejong_corpus_lr_sepxsv.txt'
+    model_path = '../models/sejong_lr_sepxsv_hmm.json'
 
 Corpus 는 nested list 형식의 문장을 yield 하는 class 입니다. 학습에 이용한 네 문장의 예시입니다. 각 문장은 list 로 표현되며, 문장은 [형태소, 품사] 의 list 로 구성되어 있습니다.
 
@@ -36,16 +36,16 @@ CorpusTrainer 에 품사의 min count, 단어의 min count 를 설정한 뒤, co
     trainer = CorpusTrainer(min_count_tag=5, min_count_word=1, verbose=True)
     trainer.train(corpus, model_path)
 
-model_path 에 JSON 형식으로 모델이 저장되어 있습니다. 모델은 세 종류의 정보가 담겨 있습니다.
+model_path 에 JSON 형식으로 모델이 저장되어 있습니다. 모델은 두 종류의 정보가 담겨 있습니다.
 
     import json
-    with open('../models/sejong_simple_hmm.json', encoding='utf-8') as f:
+    with open(model_path, encoding='utf-8') as f:
         model = json.load(f)
 
     print(model.keys())
-    # dict_keys(['emission', 'transition', 'begin'])
+    # dict_keys(['emission', 'transition'])
 
-emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Noun -> Josa': prob} 형식의 dict 입니다. begin 은 문장의 시작 단어로 품사가 등장할 가능성, P(tag | BOS) 입니다.
+emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Noun -> Josa': prob} 형식의 dict 입니다. 문장의 시작에 대한 transition (예: ('BOS', 'Noun')) 나 문장의 마지막에 대한 transition (예: ('Eomi', 'EOS')) 는 transition 에 저장되어 있습니다.
 
 ### Tagging
 
@@ -53,10 +53,10 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
 
     from hmm_postagger import TrainedHMMTagger
 
-    model_path = '../models/sejong_simple_hmm.json'
+    model_path = '../models/sejong_lr_sepxsv_hmm.json'
     tagger = TrainedHMMTagger(model_path)
 
-예시로 세 문장에 대한 형태소 분석을 수행합니다.
+예시로 네 문장에 대한 형태소 분석을 수행합니다.
 
     from pprint import pprint
 
@@ -78,26 +78,23 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
      ('아이돌', 'Noun'),
      ('에', 'Josa'),
      ('아이오아', 'Noun'),
-     ('이', 'Josa'),
-     ('가', 'Josa'),
+     ('이가', 'Noun'),
      ('출연', 'Noun'),
      ('하', 'Verb'),
-     ('았', 'Eomi'),
-     ('다', 'Eomi')]
+     ('았다', 'Eomi')]
+
 
     이번 경기에서는 누가 이겼을까
     [('이번', 'Noun'),
      ('경기', 'Noun'),
-     ('에서', 'Josa'),
-     ('는', 'Josa'),
-     ('누', 'Noun'),
-     ('가', 'Josa'),
+     ('에서는', 'Josa'),
+     ('누가', 'Noun'),
      ('이기', 'Verb'),
-     ('었', 'Eomi'),
-     ('을까', 'Eomi')]
+     ('었을까', 'Eomi')]
+
 
     아이고 작업이 쉽지 않구만
-    [('아이고', 'Exclamation'),
+    [('아이고', 'Noun'),
      ('작업', 'Noun'),
      ('이', 'Josa'),
      ('쉽', 'Adjective'),
@@ -105,11 +102,13 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
      ('않', 'Verb'),
      ('구만', 'Eomi')]
 
+
     샤샨 괜찮아
     [('샤샤', 'Noun'),
      ('ㄴ', 'Josa'),
      ('괜찮', 'Adjective'),
      ('아', 'Eomi')]
+
 
 사용자 사전을 추가할 수 있는 기능을 넣었습니다. 사용자 사전이 입력되면 해당 단어들은 각 품사에서 가장 큰 emission probability 를 지닙니다. 즉, 다른 어떤 단어보다도 우선적으로 추가한 단어를 선호합니다.
 
@@ -124,6 +123,7 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
      ('하', 'Adjective'),
      ('았', 'Eomi'),
      ('다', 'Eomi')]
+
 
 ### Inferring unknown word
 
@@ -151,13 +151,14 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
 
 품사 추정의 기능을 이용하면 아래와 같이 영문과 한글이 혼용된 경우, 영어 단어의 품사도 추정할 수 있습니다.
 
-    tt는 좋은 노래야
+    tt는 좋은 노래야tt
     [('tt', 'Noun'),
      ('는', 'Josa'),
      ('좋', 'Adjective'),
      ('은', 'Eomi'),
      ('노래', 'Noun'),
-     ('야', 'Josa')]
+     ('야', 'Josa'),
+     ('tt', 'Noun')]
 
 ## TODO
 
