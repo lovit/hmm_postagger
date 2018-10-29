@@ -21,7 +21,7 @@ class TrainedHMMTagger:
         self._max_modifier_len = 4
 
         if no_inference_tags is None:
-            no_inference_tags = [eos_state, 'Pronoun', 'Number']
+            no_inference_tags = [bos_state, eos_state, 'Pronoun', 'Number']
         self._no_inference_tags = no_inference_tags
 
         # 'eg) 좋은 노래야 -> [좋, 은, 노랗, 애야] vs [좋, 은, 노래, 야]'
