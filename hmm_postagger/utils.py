@@ -8,7 +8,7 @@ class Corpus:
     def __iter__(self):
         with open(self.path, encoding='utf-8') as f:
             for i, sent in enumerate(f):
-                if self.num_sent > 0 and i > self.num_sent:
+                if self.num_sent > 0 and i >= self.num_sent:
                     break
                 wordpos = [token.rsplit('/', 1) for token in sent.split()]
                 wordpos = [wp for wp in wordpos if len(wp) == 2 and wp[0] and wp[1]]
