@@ -12,19 +12,23 @@ models/ 에는 세종 말뭉치를 이용하여 학습한 HMM 의 emission, tran
 
 학습을 위하여 Corpus 와 CorpusTrainer class 를 import 합니다.
 
-    from hmm_postagger import Corpus
-    from hmm_postagger import CorpusTrainer
+```python
+from hmm_postagger import Corpus
+from hmm_postagger import CorpusTrainer
 
-    data_path = '../data/sejong_corpus_lr_sepxsv.txt'
-    model_path = '../models/sejong_lr_sepxsv_hmm.json'
+data_path = '../data/sejong_corpus_lr_sepxsv.txt'
+model_path = '../models/sejong_lr_sepxsv_hmm.json'
+```
 
 Corpus 는 nested list 형식의 문장을 yield 하는 class 입니다. 학습에 이용한 네 문장의 예시입니다. 각 문장은 list 로 표현되며, 문장은 [형태소, 품사] 의 list 로 구성되어 있습니다.
 
-    corpus = Corpus(sejong_path)
-    for i, sent in enumerate(corpus):
-        if i > 3:
-            break
-        print(sent)
+```python
+corpus = Corpus(sejong_path)
+for i, sent in enumerate(corpus):
+    if i > 3:
+        break
+    print(sent)
+```
 
     [['뭐', 'Noun'], ['타', 'Verb'], ['고', 'Eomi'], ['가', 'Verb'], ['ㅏ', 'Eomi']]
     [['지하철', 'Noun']]
@@ -33,17 +37,21 @@ Corpus 는 nested list 형식의 문장을 yield 하는 class 입니다. 학습�
 
 CorpusTrainer 에 품사의 min count, 단어의 min count 를 설정한 뒤, corpus 와 model_path 를 train 함수에 입력합니다.
 
-    trainer = CorpusTrainer(min_count_tag=5, min_count_word=1, verbose=True)
-    trainer.train(corpus, model_path)
+```python
+trainer = CorpusTrainer(min_count_tag=5, min_count_word=1, verbose=True)
+trainer.train(corpus, model_path)
+```
 
 model_path 에 JSON 형식으로 모델이 저장되어 있습니다. 모델은 두 종류의 정보가 담겨 있습니다.
 
-    import json
-    with open(model_path, encoding='utf-8') as f:
-        model = json.load(f)
+```python
+import json
+with open(model_path, encoding='utf-8') as f:
+    model = json.load(f)
 
-    print(model.keys())
-    # dict_keys(['emission', 'transition'])
+print(model.keys())
+# dict_keys(['emission', 'transition'])
+```
 
 emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Noun -> Josa': prob} 형식의 dict 입니다. 문장의 시작에 대한 transition (예: ('BOS', 'Noun')) 나 문장의 마지막에 대한 transition (예: ('Eomi', 'EOS')) 는 transition 에 저장되어 있습니다.
 
@@ -51,25 +59,29 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
 
 학습된 형태소 분석기는 hmm model 파일을 입력해야 합니다.
 
-    from hmm_postagger import TrainedHMMTagger
+```python
+from hmm_postagger import TrainedHMMTagger
 
-    model_path = '../models/sejong_lr_sepxsv_hmm.json'
-    tagger = TrainedHMMTagger(model_path)
+model_path = '../models/sejong_lr_sepxsv_hmm.json'
+tagger = TrainedHMMTagger(model_path)
+```
 
 예시로 네 문장에 대한 형태소 분석을 수행합니다.
 
-    from pprint import pprint
+```python
+from pprint import pprint
 
-    sents = [
-        '주간아이돌에 아이오아이가 출연했다',
-        '이번 경기에서는 누가 이겼을까',
-        '아이고 작업이 쉽지 않구만',
-        '샤샨 괜찮아'
-    ]
+sents = [
+    '주간아이돌에 아이오아이가 출연했다',
+    '이번 경기에서는 누가 이겼을까',
+    '아이고 작업이 쉽지 않구만',
+    '샤샨 괜찮아'
+]
 
-    for sent in sents:
-        print('\n\n{}'.format(sent))
-        pprint(tagger.tag(sent))
+for sent in sents:
+    print('\n\n{}'.format(sent))
+    pprint(tagger.tag(sent))
+```
 
 2, 3 번째 문장의 단어들은 세종말뭉치에 존재하였기 때문에 형태소 분석이 어느 정도 되지만, '주간아이돌'과 '아이오아이'는 미등록단어 문제가 발생하여 형태소 분석이 제대로 이뤄지지 않습니다.
 
@@ -112,8 +124,10 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
 
 사용자 사전을 추가할 수 있는 기능을 넣었습니다. 사용자 사전이 입력되면 해당 단어들은 각 품사에서 가장 큰 emission probability 를 지닙니다. 즉, 다른 어떤 단어보다도 우선적으로 추가한 단어를 선호합니다.
 
-    tagger.add_user_dictionary('Noun', ['아이오아이', '주간아이돌'])
-    pprint(tagger.tag('주간아이돌에 아이오아이가 출연했다'))
+```python
+tagger.add_user_dictionary('Noun', ['아이오아이', '주간아이돌'])
+pprint(tagger.tag('주간아이돌에 아이오아이가 출연했다'))
+```
 
     [('주간아이돌', 'Noun'),
      ('에', 'Josa'),
@@ -129,8 +143,10 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
 
 형태소 분석을 하여도 전혀 보지 못한 string 이 존재할 수 있습니다. '갹갹' 이라는 단어는 등록된 형태소로도 분해하지 못합니다.
 
-    sent = '갹갹은 어디있어'
-    tagger.tag(sent, inference_unknown=False)
+```python
+sent = '갹갹은 어디있어'
+tagger.tag(sent, inference_unknown=False)
+```
 
     [('갹갹', 'Unk'),
      ('은', 'Josa'),
@@ -140,8 +156,10 @@ emission 은 {tag:{word:prob}} 형식의 nested dict 이며 transition 은 {'Nou
 
 위와 같은 경우에 '갹갹'의 앞 단어 (BOS) 에서의 state transition probability 와 '갹갹'의 뒤 단어 '은/josa'으로의 state transition probability 를 고려하여 '갹갹'의 품사를 추정합니다. inference_unknown 의 기본값은 True 입니다.
 
-    sent = '갹갹은 어디있어'
-    tagger.tag(sent, inference_unknown=True)
+```python
+sent = '갹갹은 어디있어'
+tagger.tag(sent, inference_unknown=True)
+```
 
     [('갹갹', 'Noun'),
      ('은', 'Josa'),
